@@ -5,7 +5,7 @@ MAINTAINER Bjoern Gruening <bjoern.gruening@gmail.com>
 RUN DEBIAN_FRONTEND=noninteractive apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y libzmq1 libzmq-dev python-dev libc-dev pandoc python-pip
 RUN DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y build-essential libblas-dev liblapack-dev gfortran
-RUN DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y libfreetype6-dev libpng-dev net-tools procps cron
+RUN DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y libfreetype6-dev libpng-dev net-tools procps cron iptables
 RUN pip install pyzmq ipython jinja2 tornado pygments
 RUN pip install distribute --upgrade
 RUN pip install numpy biopython scikit-learn pandas scipy sklearn-pandas bioblend matplotlib
@@ -27,6 +27,7 @@ WORKDIR /import/
 # Add python module to a special folder for modules we want to be able to load within IPython
 RUN mkdir /py/
 ADD ./galaxy.py /py/galaxy.py
+ADD ./update_conf.py /py/update_conf.py
 # Make sure the system is aware that it can look for python code here
 ENV PYTHONPATH /py/
 
