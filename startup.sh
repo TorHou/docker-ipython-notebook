@@ -3,22 +3,29 @@ CONF_LOCATION=/import/conf.yaml
 # If there is a conf file
 if [ -e "${CONF_LOCATION}" ]
 then
-    # And it lists a remote IP address
-    HAS_REMOTE_IP=$(cat ${CONF_LOCATION} | grep "remote_host" | wc -l)
-    if [[ "${HAS_REMOTE_IP}" -gt 0 ]];
+    # Our gateway is the galaxy server
+    GALAXY_HOST=$(netstat -nr | grep '^0\.0\.0\.0' | awk '{print $2}')
+    # Add this to the list of whitelisted IP addresses
+    python /py/update_conf.py ${CONF_LOCATION} append whitelisted_ips ${GALAXY_HOST}
+    # Fetch a list of whitelisted IPs
+    WHITELISTED_IPS=$(python /py/update_conf.py ${CONF_LOCATION} read whitelisted_ips)
+    # Count them
+    NUM_IPS=$(echo -n $WHITELISTED_IPS | wc -c);
+    if [[ "${NUM_IPS}" -gt 7 ]]; #7 = min ip len, e.g. 8.8.8.8
     then
-        # Apply some iptables rules to block all traffic except from this IP address
-        REMOTE_IP=$(cat ${CONF_LOCATION} |  egrep -o 'remote_host: [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | sed 's/.* //g')
         #Flush existing rules
         iptables -F
         # Set up default DROP rule for eth0
         iptables -P INPUT DROP
         # Allow existing connections to continue
         iptables -A INPUT -i eth0 -m state --state ESTABLISHED,RELATED -j ACCEPT
-        # Accept everything from the 192.168.1.x network
-        iptables -A INPUT -i eth0 -s $REMOTE_IP -j ACCEPT
-        # Allow connections from this host to 192.168.2.10
-        iptables -A OUTPUT -o eth0 -d $REMOTE_IP -j ACCEPT
+        for ADDR in $WHITELISTED_IPS;
+        do
+            # Accept everything from the 192.168.1.x network
+            iptables -A INPUT -i eth0 -s $ADDR -j ACCEPT
+            # Allow connections from this host to 192.168.2.10
+            iptables -A OUTPUT -o eth0 -d $ADDR -j ACCEPT
+        done
     fi
 fi
 
